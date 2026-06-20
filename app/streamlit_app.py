@@ -1,7 +1,7 @@
 import os
-import numpy as np
 import pandas as pd
 import streamlit as st
+from src.recommender import get_recommendations
 
 # Set page configuration
 st.set_page_config(
@@ -11,7 +11,7 @@ st.set_page_config(
 )
 
 # Define paths to data artifacts
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
 PARQUET_PATH = os.path.join(DATA_DIR, 'games_cleaned.parquet')
 MATRIX_PATH = os.path.join(DATA_DIR, 'top_indices.npy')
@@ -26,28 +26,6 @@ def load_data():
     df = pd.read_parquet(PARQUET_PATH)
     top_indices = np.load(MATRIX_PATH)
     return df, top_indices
-
-
-def get_recommendations(game_title: str, df: pd.DataFrame, top_indices_matrix: np.ndarray, top_n: int = 5) -> pd.Series:
-    """
-    Finds recommendations based on partial matching and precomputed top indices.
-    """
-    # Case-insensitive partial string matching
-    matches = df[df['name'].str.contains(game_title, case=False, na=False)]
-
-    if matches.empty:
-        return pd.Series(dtype='object')
-
-    idx = matches.index[0]
-
-    # Extract precomputed top items (excluding the selected game itself if possible)
-    # Slicing from 1 to top_n + 1 assumes index 0 is the query game itself
-    game_top_indices = top_indices_matrix[idx, 1:top_n + 1]
-
-    return df['name'].iloc[game_top_indices]
-
-
-# --- UI Layout ---
 
 st.title("🎮 Steam Game Recommender System")
 st.write("Find your next favorite game based on genres, tags, and descriptions using Content-Based Filtering.")

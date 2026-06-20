@@ -16,10 +16,12 @@ def get_recommendations(game_title: str, df: pd.DataFrame, top_indices_matrix: n
 
     # Get the internal index of the first matching game
     idx = matches.index[0]
+    pd_idx = df.index.get_loc(idx)
 
     # 2. Get precomputed top recommendations for this game index
-    # We slice from 1 to top_n + 1 to exclude the game itself (which is at index 0)
-    game_top_indices = top_indices_matrix[idx, 1:top_n + 1]
+    # Exclude the game itself from recommendations and take top_n results
+    game_top_indices = top_indices_matrix[pd_idx]
+    game_top_indices = game_top_indices[game_top_indices != pd_idx][:top_n]
 
     # 3. Return the game titles using the fast .iloc indexer
     return df['name'].iloc[game_top_indices]

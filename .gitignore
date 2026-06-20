@@ -8,6 +8,7 @@ __pycache__/
 
 # Distribution / packaging
 data/games_march2025_full.csv
+.idea/
 .Python
 build/
 develop-eggs/
