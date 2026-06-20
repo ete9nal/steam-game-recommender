@@ -3,7 +3,7 @@
 A content-based recommendation system that helps users discover new Steam games
 based on the similarity of game descriptions, genres, and tags.
 
-**Live demo:** https://steam-game-recommender-2pfkqz32cvpt2bwlpmkaun.streamlit.app/
+**Live demo:** [https://steam-game-recommender-2pfkqz32cvpt2bwlpmkaun.streamlit.app/](https://steam-game-recommender-rd6atpmbwwhcdmuzngynbq.streamlit.app/)
 
 ## Problem
 
