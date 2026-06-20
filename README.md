@@ -1,81 +1,90 @@
-# 🎮 Steam Game Recommender System 🔍
+# 🎮 Steam Game Recommender
 
----
+A content-based recommendation system that helps users discover new Steam games
+based on the similarity of game descriptions, genres, and tags.
 
-# Live App 🔥
+**Live demo:** https://steam-game-recommender-2pfkqz32cvpt2bwlpmkaun.streamlit.app/
 
-[![Live Demo](https://img.shields.io/badge/Demo-Live%20App-purple?style=for-the-badge&logo=streamlit&logoColor=white)](https://steam-game-recommender-2pfkqz32cvpt2bwlpmkaun.streamlit.app/)
+## Problem
 
----
+With 90,000+ games on Steam, finding a new game similar to one you already love is
+hard. This project builds a recommendation engine that, given a game you enjoy,
+suggests similar titles based on what the game *is* (genre, tags, description) —
+no user rating history required.
 
-A memory-optimized, content-based recommendation engine that suggests video games based on their genres, player tags, categories, and textual descriptions using Steam data. The project features a fast prediction pipeline and a clean, interactive user interface built with Streamlit.
+## Approach
 
----
+**Content-based filtering** using TF-IDF + cosine similarity.
 
-## 🛠 Features
+The dataset contains only game metadata (no user-item interaction data — no
+ratings, purchase history, or playtime per user), which rules out collaborative
+filtering. Content-based filtering is the right fit for the data available, and
+has the added benefit of working immediately for newly released games (no
+cold-start problem).
 
-- Live Demo: Fully deployed and accessible via Streamlit Cloud. ☁️
-- Content-Based Filtering: Uses TfidfVectorizer to extract numerical features from categorical fields and text descriptions. 📝
-- Production Optimization: Downsizes a massive 10 GB cosine similarity matrix into a highly compact 7 MB precomputed top-indices integer matrix (int32), allowing seamless deployments on free cloud tiers. 💡
-- Robust Search: Supports case-insensitive and partial string matching for user queries. 🔍
-- Interactive UI: Built using Streamlit, complete with result size customization and state caching for near-instant responses. ⚡
+### Pipeline
 
----
+1. **Data loading & overview** — load and inspect the Steam Games Dataset 2025
+2. **EDA** — explore price, release date, and review distributions; choose a
+   review-count threshold to filter out low-signal entries
+3. **Preprocessing & feature engineering** — combine `genres`, `tags`,
+   `categories`, and `about_the_game` into a single cleaned text field
+4. **Modeling** — vectorize text with `TfidfVectorizer`, compute pairwise
+   cosine similarity, keep the top-50 most similar games per title
+5. **Evaluation** — qualitative check against known titles, comparison with a
+   popularity baseline, catalog coverage analysis
+6. **Streamlit app** — interactive UI to search a game and view recommendations
 
-## 📁 Project Structure
+## Dataset
 
+[Steam Games Dataset 2025](https://www.kaggle.com/datasets/artermiloff/steam-games-dataset)
+(94,948 games), filtered to 36,259 games with at least 30 reviews.
+
+## Tech Stack
+
+- `pandas`, `numpy` — data handling
+- `scikit-learn` — `TfidfVectorizer`, `cosine_similarity`
+- `streamlit` — web app
+- `matplotlib`, `seaborn` — EDA visualizations
+
+## Project Structure
+
+```
 steam-game-recommender/
 ├── app/
-│   └── streamlit_app.py     - Streamlit web application interface 🌐
-│
+│   └── streamlit_app.py       # Streamlit UI
 ├── data/
-│   ├── top_indices.npy      - Precomputed Top-50 similar game indices (binary) 💾
-│   └── games_cleaned.parquet- Processed metadata storage (lightweight) 💾
-│
+│   ├── games_march2025_full.csv   # raw dataset (not tracked in git)
+│   ├── games_cleaned.parquet      # processed games for the app
+│   └── top_indices.npy            # precomputed top-50 similarity indices
 ├── notebooks/
-│   ├── 01_eda.ipynb         - Exploratory data analysis 📊
-│   └── 02_modeling.ipynb    - Feature extraction, matrix computation, and evaluation ⚙️
-│
+│   └── recsys.ipynb           # full EDA → modeling → evaluation pipeline
 ├── src/
-│   ├── preprocessing.py     - Data pipeline routines 🏭
-│   └── recommender.py       - Core recommendation matching logic 🤖
-│
-├── .gitignore               - Excludes raw data and heavy files from version control 🚫
-├── pyproject.toml           - Poetry project dependencies configuration 📄
-├── poetry.lock              - Deterministic lock file for dependencies 📄
-└── README.md                - Project overview and documentation 📄
+│   └── recommender.py         # recommendation logic
+├── pyproject.toml
+└── README.md
+```
 
----
+## Running locally
 
-## 🛠 Installation and Setup
-
-This project uses Poetry for dependency and environment management. 📦
-
-1. Clone the repository: ⬇️
-git clone [https://github.com/ete9nal/steam-game-recommender.git](https://github.com/ete9nal/steam-game-recommender.git)
-cd steam-game-recommender
-
-2. Install dependencies: 🔧
+```bash
 poetry install
+poetry run jupyter notebook   # run notebooks/recsys.ipynb to generate data artifacts
+poetry run streamlit run app/streamlit_app.py
+```
 
-3. Activate the environment: 🐍
-poetry shell
+## Why not collaborative filtering?
 
----
+The dataset has no per-user interaction data (ratings, purchases, playtime by
+user), which collaborative filtering and matrix factorization methods (SVD,
+ALS) require. Building a synthetic user-item matrix (e.g. treating genres as
+"users") would not reflect real user behavior and was deliberately avoided in
+favor of an honest, data-appropriate content-based approach.
 
-## 🏃 Run the Application Locally
+## Future improvements
 
-To launch the web interface locally, ensure you are inside the activated Poetry environment and execute:
-
-streamlit run app/streamlit_app.py
-
-The app will compile the layout and automatically launch in your default web browser at http://localhost:8501. 🚀
-
----
-
-## 🧪 Tech Stack
-
-- Core: Python 3.11 🐍
-- Data Processing: Pandas, NumPy, PyArrow (Parquet) 📊
-- Machine Learning: Scikit-Learn (TfidfVectorizer, ColumnTransformer, cosine_similarity) ⚙️
-- Web UI: Streamlit 🌐
+- Replace TF-IDF with sentence embeddings (`sentence-transformers`) for
+  better semantic similarity
+- Add a hybrid score that blends content similarity with review quality
+- If user interaction data becomes available, add collaborative filtering
+  (ALS via `implicit`) as a complementary signal

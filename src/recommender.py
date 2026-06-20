@@ -1,27 +1,51 @@
+"""
+Content-based game recommendation logic.
+
+Recommendations are based on a precomputed top-50 similarity index
+(see notebooks/recsys.ipynb for how it's built from TF-IDF + cosine similarity).
+"""
+
 import numpy as np
 import pandas as pd
 
 
-def get_recommendations(game_title: str, df: pd.DataFrame, top_indices_matrix: np.ndarray, top_n: int = 5) -> pd.Series:
+def get_recommendations(
+    game_title: str,
+    df: pd.DataFrame,
+    top_indices_matrix: np.ndarray,
+    top_n: int = 5,
+) -> pd.DataFrame:
     """
-    Fast and memory-efficient recommendation using a precomputed top-indices matrix.
-    Handles case-insensitive and partial string matching.
+    Return the top_n games most similar to game_title.
+
+    Parameters
+    ----------
+    game_title : partial or full game name (case-insensitive)
+    df : dataframe with a 'name' column, index must match the rows
+         used to build top_indices_matrix (i.e. reset_index(drop=True))
+    top_indices_matrix : precomputed (n_games, top_k) array of similar-game
+         row positions, sorted by similarity descending. Column 0 is the
+         game itself.
+    top_n : how many recommendations to return
+
+    Returns
+    -------
+    DataFrame with the recommended games' rows (same columns as df).
+    Empty DataFrame if no match is found.
     """
-    # 1. Find the game by partial name match (case-insensitive)
     matches = df[df['name'].str.contains(game_title, case=False, na=False)]
 
     if matches.empty:
-        print(f"Game '{game_title}' not found in the dataset.")
-        return pd.Series(dtype='object')
+        return pd.DataFrame(columns=df.columns)
 
-    # Get the internal index of the first matching game
-    idx = matches.index[0]
-    pd_idx = df.index.get_loc(idx)
+    # Positional index into df — df must be reset_index(drop=True) for this
+    # to line up with top_indices_matrix rows.
+    position = df.index.get_loc(matches.index[0])
 
-    # 2. Get precomputed top recommendations for this game index
-    # Exclude the game itself from recommendations and take top_n results
-    game_top_indices = top_indices_matrix[pd_idx]
-    game_top_indices = game_top_indices[game_top_indices != pd_idx][:top_n]
+    similar_positions = top_indices_matrix[position, 1:top_n + 1]
+    return df.iloc[similar_positions].reset_index(drop=True)
 
-    # 3. Return the game titles using the fast .iloc indexer
-    return df['name'].iloc[game_top_indices]
+
+def get_popularity_baseline(df: pd.DataFrame, top_n: int = 5) -> pd.DataFrame:
+    """Return the top_n most positively-reviewed games, ignoring content similarity."""
+    return df.nlargest(top_n, 'positive').reset_index(drop=True)
